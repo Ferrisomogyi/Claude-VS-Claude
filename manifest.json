@@ -1,0 +1,17 @@
+{
+  "name": "Claude vs Claude",
+  "short_name": "CvC",
+  "description": "Twee AI's, één gesprek — jij hebt de controle",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0f0c29",
+  "theme_color": "#6366f1",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%230f0c29' width='100' height='100' rx='20'/><text y='65' x='50' text-anchor='middle' font-size='50'>🤖</text></svg>",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

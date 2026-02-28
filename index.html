@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0f0c29">
+<title>Claude vs Claude</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='80' font-size='80'>🤖</text></svg>">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root { --bg: #0f0c29; --bg2: #1a1a3e; --text: #e2e4ed; --muted: #8b8fa3; --dim: #555; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    font-family: -apple-system, 'Inter', system-ui, sans-serif;
+    background: linear-gradient(135deg, var(--bg) 0%, var(--bg2) 50%, #24243e 100%);
+    color: var(--text);
+    -webkit-tap-highlight-color: transparent;
+  }
+  input, textarea { font-family: inherit; }
+  input::placeholder { color: var(--dim); }
+  button { font-family: inherit; -webkit-appearance: none; }
+
+  .app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
+  .screen { flex: 1; overflow-y: auto; padding: 20px; padding-top: max(20px, env(safe-area-inset-top)); }
+  .center { max-width: 560px; margin: 0 auto; }
+
+  .card {
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 14px; padding: 18px; cursor: pointer; text-align: left;
+    transition: all 0.15s; margin-bottom: 12px;
+  }
+  .card:hover, .card:active { background: rgba(255,255,255,0.1); transform: translateY(-1px); }
+  .card.selected { border-color: var(--accent); background: rgba(255,255,255,0.08); }
+
+  .btn {
+    padding: 8px 18px; border-radius: 9px; font-size: 12px; font-weight: 500;
+    cursor: pointer; border: 1px solid; transition: opacity 0.15s;
+  }
+  .btn:active { opacity: 0.7; }
+  .btn-green { background: rgba(34,197,94,0.15); border-color: rgba(34,197,94,0.4); color: #22c55e; }
+  .btn-yellow { background: rgba(234,179,8,0.15); border-color: rgba(234,179,8,0.4); color: #eab308; }
+  .btn-red { background: rgba(239,68,68,0.15); border-color: rgba(239,68,68,0.4); color: #ef4444; }
+  .btn-orange { background: rgba(251,191,36,0.15); border-color: rgba(251,191,36,0.4); color: #fbbf24; }
+  .btn-muted { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.15); color: #c4c7d4; }
+  .btn-primary {
+    width: 100%; padding: 13px; border-radius: 10px; border: none;
+    font-size: 14px; font-weight: 600; color: #fff; cursor: pointer;
+  }
+  .btn-primary:disabled { background: rgba(255,255,255,0.08) !important; color: var(--dim); cursor: default; }
+
+  .input {
+    width: 100%; padding: 12px 14px; border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.06);
+    color: #fff; font-size: 14px; outline: none;
+  }
+  .input:focus { border-color: rgba(255,255,255,0.3); }
+  .input-sm { padding: 9px 11px; font-size: 12px; border-radius: 8px; }
+
+  .tag { padding: 3px 8px; border-radius: 6px; font-size: 11px; display: inline-block; }
+
+  .header {
+    padding: 8px 14px; border-bottom: 1px solid rgba(255,255,255,0.08);
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0; flex-wrap: wrap; gap: 4px;
+    padding-top: max(8px, env(safe-area-inset-top));
+  }
+  .footer {
+    padding: 7px 14px; border-top: 1px solid rgba(255,255,255,0.08);
+    display: flex; justify-content: center; gap: 6px; flex-shrink: 0; flex-wrap: wrap;
+    padding-bottom: max(7px, env(safe-area-inset-bottom));
+  }
+
+  .messages { flex: 1; overflow-y: auto; padding: 10px 14px; -webkit-overflow-scrolling: touch; }
+  .messages-inner { max-width: 660px; margin: 0 auto; }
+
+  .msg { margin-bottom: 10px; display: flex; flex-direction: column; }
+  .msg-a { align-items: flex-start; }
+  .msg-b { align-items: flex-end; }
+  .msg-user { align-items: center; }
+  .msg-label { font-size: 10px; margin-bottom: 2px; padding: 0 3px; }
+  .msg-bubble {
+    padding: 8px 12px; max-width: 88%; font-size: 13px; line-height: 1.6;
+    white-space: pre-wrap; word-break: break-word;
+  }
+  .msg-a .msg-bubble { border-radius: 3px 12px 12px 12px; }
+  .msg-b .msg-bubble { border-radius: 12px 3px 12px 12px; }
+  .msg-user .msg-bubble { border-radius: 10px; background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.3); color: #fde68a; }
+
+  .cost-badge {
+    background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.25);
+    border-radius: 5px; padding: 2px 7px; font-size: 11px; color: #86efac; font-family: monospace;
+  }
+  .pause-panel {
+    padding: 12px 14px; border-top: 1px solid rgba(251,191,36,0.3);
+    background: rgba(251,191,36,0.08); flex-shrink: 0;
+  }
+
+  @keyframes pulse { 0%,100% { opacity:1 } 50% { opacity:.4 } }
+  @keyframes spin { from { transform:rotate(0deg) } to { transform:rotate(360deg) } }
+  .pulse { animation: pulse 1.5s infinite; }
+  .spin { display: inline-block; animation: spin 1s linear infinite; }
+
+  .key-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 24px; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+// === STATE ===
+const state = {
+  screen: 'key', // key | mode | model | topic | running
+  apiKey: localStorage.getItem('cvc_api_key') || '',
+  mode: null,
+  model: 'claude-sonnet-4-6-20250929',
+  topic: '',
+  maxRounds: 20,
+  messages: [],
+  isRunning: false,
+  isPaused: false,
+  round: 0,
+  costEur: 0,
+  totalTokens: 0,
+  costPauseHit: false,
+  thinking: '',
+  error: null,
+  userInput: '',
+};
+
+let stopFlag = false;
+let pauseFlag = false;
+let costTotal = 0;
+let costThreshold = 1.0;
+let resolveWait = null;
+
+// === CONFIG ===
+const MODELS = {
+  'claude-opus-4-6': { label: 'Opus 4.6', emoji: '🧠', desc: 'Slimste — complex redeneren', inputCost: 5, outputCost: 25, color: '#a78bfa' },
+  'claude-sonnet-4-6-20250929': { label: 'Sonnet 4.6', emoji: '⚡', desc: 'Snel & slim — prijs/kwaliteit', inputCost: 3, outputCost: 15, color: '#60a5fa' },
+  'claude-sonnet-4-20250514': { label: 'Sonnet 4', emoji: '💨', desc: 'Voordeligst', inputCost: 3, outputCost: 15, color: '#34d399' },
+};
+
+const MODES = {
+  mystery: {
+    label: '🔍 Mystery Solvers', desc: 'Twee Claude\'s onderzoeken samen een mysterie',
+    roleA: { name: 'Onderzoeker', emoji: '🔬', bg: 'rgba(99,102,241,0.15)', bc: 'rgba(99,102,241,0.25)', tagBg: 'rgba(99,102,241,0.2)', tagC: '#a5b4fc',
+      sys: 'Je bent een analytische onderzoeker. Je werkt samen met De Theoreticus. Natuurlijk gesprek, geen bullets.\n- Feiten, bewijs, logica\n- Daag collega uit\n- Soms oneens\n- ALTIJD Nederlands\n- Max 120 woorden\n- Eindig met vraag' },
+    roleB: { name: 'Theoreticus', emoji: '🧠', bg: 'rgba(236,72,153,0.12)', bc: 'rgba(236,72,153,0.2)', tagBg: 'rgba(236,72,153,0.2)', tagC: '#f9a8d4',
+      sys: 'Je bent een creatieve theoreticus. Je werkt samen met De Onderzoeker. Natuurlijk gesprek, geen bullets.\n- Creatieve hypotheses\n- Onverwachte verbanden\n- Soms oneens\n- ALTIJD Nederlands\n- Max 120 woorden\n- Eindig met vraag' },
+  },
+  dev: {
+    label: '💻 Dev Pair Programming', desc: 'Eén schrijft code, de ander reviewt',
+    roleA: { name: 'Developer', emoji: '⌨️', bg: 'rgba(34,197,94,0.12)', bc: 'rgba(34,197,94,0.25)', tagBg: 'rgba(34,197,94,0.2)', tagC: '#86efac',
+      sys: 'Senior full-stack developer. Werkt met Code Reviewer.\n- Concrete code, korte uitleg\n- Nederlands, code in Engels\n- Max 150 woorden + code\n- Eén component per beurt' },
+    roleB: { name: 'Reviewer', emoji: '🔍', bg: 'rgba(245,158,11,0.12)', bc: 'rgba(245,158,11,0.25)', tagBg: 'rgba(245,158,11,0.2)', tagC: '#fcd34d',
+      sys: 'Senior code reviewer & architect.\n- Kritisch: bugs, security, performance\n- Concrete verbeteringen\n- Nederlands, max 150 woorden\n- Status: APPROVED / NEEDS CHANGES / BLOCKER' },
+  },
+};
+
+const MAX_CTX = 12;
+
+// === HELPERS ===
+const $ = (s) => document.querySelector(s);
+const h = (tag, attrs, ...kids) => {
+  const el = document.createElement(tag);
+  if (attrs) Object.entries(attrs).forEach(([k, v]) => {
+    if (k === 'style' && typeof v === 'object') Object.assign(el.style, v);
+    else if (k.startsWith('on')) el.addEventListener(k.slice(2).toLowerCase(), v);
+    else el.setAttribute(k, v);
+  });
+  kids.flat().forEach(c => { if (c != null) el.append(typeof c === 'string' ? c : c); });
+  return el;
+};
+
+const estTokens = (t) => Math.ceil((t||'').length / 3.5);
+
+async function callAPI(system, messages) {
+  const m = MODELS[state.model];
+  const inTok = estTokens(system + JSON.stringify(messages));
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': state.apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+    body: JSON.stringify({ model: state.model, max_tokens: 600, system, messages }),
+  });
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`API ${res.status}: ${txt.slice(0, 200)}`);
+  }
+  const data = await res.json();
+  const out = data.content.map(c => c.text || '').join('\n');
+  const outTok = estTokens(out);
+  const cost = ((inTok/1e6)*m.inputCost + (outTok/1e6)*m.outputCost) * 0.92;
+  costTotal += cost;
+  state.costEur = costTotal;
+  state.totalTokens += inTok + outTok;
+  return out;
+}
+
+function trimHist(h) { return h.length <= MAX_CTX ? h : h.slice(-MAX_CTX); }
+
+// === RENDER ===
+function render() {
+  const app = $('#app');
+  app.innerHTML = '';
+
+  if (state.screen === 'key') return renderKeyScreen(app);
+  if (state.screen === 'mode') return renderModeScreen(app);
+  if (state.screen === 'model') return renderModelScreen(app);
+  if (state.screen === 'topic') return renderTopicScreen(app);
+  if (state.screen === 'running') return renderRunningScreen(app);
+}
+
+function renderKeyScreen(app) {
+  const wrap = h('div', { class: 'key-screen' });
+  wrap.append(
+    h('div', { style: { fontSize: '48px', marginBottom: '12px' } }, '🤖⚡🤖'),
+    h('h1', { style: { color: '#fff', fontSize: '24px', fontWeight: '700', marginBottom: '6px' } }, 'Claude vs Claude'),
+    h('p', { style: { color: '#8b8fa3', fontSize: '13px', marginBottom: '24px' } }, 'Voer je Anthropic API key in om te starten'),
+    h('input', {
+      class: 'input', type: 'password', placeholder: 'sk-ant-...',
+      value: state.apiKey,
+      style: { maxWidth: '400px', marginBottom: '8px' },
+      onInput: (e) => { state.apiKey = e.target.value; },
+      onKeydown: (e) => { if (e.key === 'Enter' && state.apiKey.trim()) saveKey(); },
+    }),
+    h('p', { style: { color: '#555', fontSize: '11px', marginBottom: '16px', maxWidth: '400px', textAlign: 'center' } },
+      'Je key wordt lokaal opgeslagen op dit apparaat. Haal een key op via console.anthropic.com'),
+    h('button', {
+      class: 'btn-primary',
+      style: { maxWidth: '400px', background: state.apiKey.trim() ? 'linear-gradient(135deg, #6366f1, #ec4899)' : undefined },
+      onClick: () => saveKey(),
+    }, '🔐 Opslaan & starten'),
+  );
+  if (localStorage.getItem('cvc_api_key')) {
+    wrap.append(h('button', {
+      class: 'btn btn-muted', style: { marginTop: '12px' },
+      onClick: () => { localStorage.removeItem('cvc_api_key'); state.apiKey = ''; render(); },
+    }, '🗑️ Verwijder opgeslagen key'));
+  }
+  app.append(wrap);
+}
+
+function saveKey() {
+  if (!state.apiKey.trim()) return;
+  localStorage.setItem('cvc_api_key', state.apiKey.trim());
+  state.screen = 'mode';
+  render();
+}
+
+function renderModeScreen(app) {
+  const wrap = h('div', { class: 'screen' });
+  const inner = h('div', { class: 'center' });
+
+  inner.append(
+    h('div', { style: { textAlign: 'center', marginBottom: '30px', paddingTop: '20px' } },
+      h('div', { style: { fontSize: '44px', marginBottom: '6px' } }, '🤖⚡🤖'),
+      h('h1', { style: { color: '#fff', fontSize: '24px', fontWeight: '700', marginBottom: '4px' } }, 'Claude vs Claude'),
+      h('p', { style: { color: '#8b8fa3', fontSize: '13px' } }, 'Twee AI\'s, één gesprek — jij hebt de controle'),
+      h('p', { style: { color: '#555', fontSize: '11px', marginTop: '4px' } }, '⏸ Pauze elke €1 • 💬 Stel tussendoor vragen'),
+    ),
+  );
+
+  Object.entries(MODES).forEach(([k, v]) => {
+    const card = h('div', { class: 'card', onClick: () => { state.mode = k; state.screen = 'model'; render(); } },
+      h('div', { style: { fontSize: '18px', fontWeight: '600', color: '#fff', marginBottom: '4px' } }, v.label),
+      h('div', { style: { color: '#8b8fa3', fontSize: '13px', marginBottom: '10px' } }, v.desc),
+      h('div', { style: { display: 'flex', gap: '6px', alignItems: 'center' } },
+        h('span', { class: 'tag', style: { background: v.roleA.tagBg, color: v.roleA.tagC } }, v.roleA.emoji + ' ' + v.roleA.name),
+        h('span', { style: { color: '#555', fontSize: '11px' } }, 'vs'),
+        h('span', { class: 'tag', style: { background: v.roleB.tagBg, color: v.roleB.tagC } }, v.roleB.emoji + ' ' + v.roleB.name),
+      ),
+    );
+    inner.append(card);
+  });
+
+  // Settings link
+  inner.append(h('button', {
+    class: 'btn btn-muted', style: { marginTop: '16px', fontSize: '11px' },
+    onClick: () => { state.screen = 'key'; render(); },
+  }, '⚙️ API Key wijzigen'));
+
+  wrap.append(inner);
+  app.append(wrap);
+}
+
+function renderModelScreen(app) {
+  const wrap = h('div', { class: 'screen' });
+  const inner = h('div', { class: 'center' });
+
+  inner.append(
+    h('button', { class: 'btn btn-muted', style: { marginBottom: '16px', fontSize: '11px' }, onClick: () => { state.screen = 'mode'; render(); } }, '← Terug'),
+    h('h2', { style: { color: '#fff', fontSize: '18px', fontWeight: '600', marginBottom: '4px' } }, 'Kies je model'),
+    h('p', { style: { color: '#8b8fa3', fontSize: '12px', marginBottom: '16px' } }, 'Slimmer = duurder, maar betere resultaten'),
+  );
+
+  Object.entries(MODELS).forEach(([id, m]) => {
+    const sel = state.model === id;
+    const card = h('div', {
+      class: 'card' + (sel ? ' selected' : ''),
+      style: { borderColor: sel ? m.color : undefined, background: sel ? m.color + '18' : undefined },
+      onClick: () => { state.model = id; render(); },
+    },
+      h('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' } },
+        h('div', {},
+          h('span', { style: { fontSize: '15px', fontWeight: '600', color: '#fff' } }, m.emoji + ' ' + m.label),
+          h('span', { style: { color: '#555', fontSize: '11px', marginLeft: '8px' } }, m.desc),
+        ),
+        sel ? h('span', { style: { color: m.color, fontSize: '16px' } }, '✓') : null,
+      ),
+      h('div', { style: { marginTop: '6px', color: '#8b8fa3', fontSize: '11px' } }, `$${m.inputCost}/M input • $${m.outputCost}/M output`),
+    );
+    inner.append(card);
+  });
+
+  const m = MODELS[state.model];
+  inner.append(h('button', {
+    class: 'btn-primary',
+    style: { marginTop: '16px', background: `linear-gradient(135deg, ${m.color}, ${m.color}88)` },
+    onClick: () => { state.screen = 'topic'; render(); },
+  }, `Verder met ${m.label} →`));
+
+  wrap.append(inner);
+  app.append(wrap);
+}
+
+function renderTopicScreen(app) {
+  const wrap = h('div', { class: 'screen' });
+  const inner = h('div', { class: 'center' });
+  const cfg = MODES[state.mode];
+  const m = MODELS[state.model];
+
+  inner.append(
+    h('button', { class: 'btn btn-muted', style: { marginBottom: '16px', fontSize: '11px' }, onClick: () => { state.screen = 'model'; render(); } }, '← Model kiezen'),
+    h('div', { style: { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '18px' } },
+      h('span', { style: { color: '#fff', fontWeight: '600', fontSize: '15px' } }, cfg.label),
+      h('span', { class: 'tag', style: { background: m.color + '25', color: m.color } }, m.emoji + ' ' + m.label),
+    ),
+    h('label', { style: { color: '#c4c7d4', fontSize: '13px', display: 'block', marginBottom: '6px' } },
+      state.mode === 'mystery' ? 'Welk mysterie?' : 'Wat moeten ze bouwen?'),
+  );
+
+  const inp = h('input', {
+    class: 'input', type: 'text', value: state.topic,
+    placeholder: state.mode === 'mystery' ? 'bijv. Het Voynich Manuscript' : 'bijv. Snypher 2.0 GPS dispatch',
+    style: { marginBottom: '14px' },
+    onInput: (e) => { state.topic = e.target.value; },
+    onKeydown: (e) => { if (e.key === 'Enter' && state.topic.trim()) startRun(); },
+  });
+  inner.append(inp);
+
+  inner.append(
+    h('div', { style: { marginBottom: '14px' } },
+      h('label', { style: { color: '#8b8fa3', fontSize: '11px', display: 'block', marginBottom: '4px' } },
+        `Max rondes: ${state.maxRounds} (pauzeert elke €1)`),
+      (() => {
+        const range = h('input', {
+          type: 'range', min: '3', max: '40', value: String(state.maxRounds),
+          style: { width: '100%', accentColor: m.color },
+          onInput: (e) => { state.maxRounds = Number(e.target.value); inner.querySelector('.rounds-label').textContent = `Max rondes: ${state.maxRounds} (pauzeert elke €1)`; },
+        });
+        return range;
+      })(),
+    ),
+  );
+
+  // Hack to update label
+  inner.querySelector('label:last-of-type').classList.add('rounds-label');
+
+  inner.append(h('button', {
+    class: 'btn-primary',
+    style: { background: state.topic.trim() ? `linear-gradient(135deg, ${m.color}, #ec4899)` : undefined },
+    disabled: !state.topic.trim() ? 'true' : undefined,
+    onClick: () => startRun(),
+  }, '🚀 Start'));
+
+  wrap.append(inner);
+  app.append(wrap);
+  inp.focus();
+}
+
+function renderRunningScreen(app) {
+  const container = h('div', { class: 'app' });
+  const cfg = MODES[state.mode];
+  const m = MODELS[state.model];
+
+  // Header
+  const header = h('div', { class: 'header' },
+    h('div', { style: { display: 'flex', alignItems: 'center', gap: '6px' } },
+      h('button', { class: 'btn btn-muted', style: { padding: '3px 7px', fontSize: '10px' }, onClick: resetAll }, '←'),
+      h('span', { style: { color: '#fff', fontWeight: '600', fontSize: '13px' } }, cfg.label),
+      h('span', { class: 'tag', style: { background: m.color + '25', color: m.color, fontSize: '10px' } }, m.label),
+    ),
+    h('div', { style: { display: 'flex', alignItems: 'center', gap: '8px' } },
+      h('span', { class: 'cost-badge' }, '€' + state.costEur.toFixed(3)),
+      state.isRunning ? h('div', { style: { display: 'flex', alignItems: 'center', gap: '3px' } },
+        h('div', { style: { width: '6px', height: '6px', borderRadius: '50%', background: state.isPaused ? '#eab308' : '#22c55e' }, class: state.isPaused ? '' : 'pulse' }),
+        h('span', { style: { color: '#8b8fa3', fontSize: '10px' } }, `${state.round}/${state.maxRounds}`),
+      ) : null,
+    ),
+  );
+  container.append(header);
+
+  // Messages
+  const msgArea = h('div', { class: 'messages' });
+  const msgInner = h('div', { class: 'messages-inner' });
+
+  state.messages.forEach(msg => {
+    const isUser = msg.role === 'user';
+    const cls = isUser ? 'msg msg-user' : msg.role === 'A' ? 'msg msg-a' : 'msg msg-b';
+    const label = h('div', { class: 'msg-label', style: { color: isUser ? '#fbbf24' : msg.tagC || '#aaa' } }, msg.emoji + ' ' + msg.name);
+    const bubble = h('div', {
+      class: 'msg-bubble',
+      style: isUser ? {} : { background: msg.bg, border: '1px solid ' + msg.bc, color: '#e2e4ed' },
+    }, msg.text);
+    const wrap = h('div', { class: cls }, label, bubble);
+    msgInner.append(wrap);
+  });
+
+  if (state.isRunning && !state.isPaused && state.thinking) {
+    msgInner.append(h('div', { style: { textAlign: 'center', padding: '8px' } },
+      h('span', { style: { color: '#8b8fa3', fontSize: '12px' } },
+        h('span', { class: 'spin', style: { marginRight: '4px' } }, '⚡'),
+        state.thinking + ' denkt na...',
+      ),
+    ));
+  }
+
+  const endMarker = h('div');
+  msgInner.append(endMarker);
+  msgArea.append(msgInner);
+  container.append(msgArea);
+
+  // Cost pause panel
+  if (state.costPauseHit) {
+    const panel = h('div', { class: 'pause-panel' });
+    const panelInner = h('div', { style: { maxWidth: '660px', margin: '0 auto' } });
+    panelInner.append(
+      h('div', { style: { color: '#fbbf24', fontWeight: '600', fontSize: '12px', marginBottom: '6px' } }, '⏸️ Kostenpauze — €' + state.costEur.toFixed(3) + ' besteed'),
+    );
+    const uiInput = h('input', {
+      class: 'input input-sm', placeholder: 'Vraag of sturing tussendoor...',
+      style: { marginBottom: '8px' },
+      onInput: (e) => { state.userInput = e.target.value; },
+      onKeydown: (e) => { if (e.key === 'Enter' && state.userInput.trim()) doUserAction(state.userInput.trim()); },
+    });
+    panelInner.append(uiInput);
+
+    const btns = h('div', { style: { display: 'flex', gap: '6px', flexWrap: 'wrap' } },
+      h('button', { class: 'btn btn-green', onClick: () => doUserAction('__GO__') }, '▶ Doorgaan'),
+      h('button', { class: 'btn btn-red', onClick: doStop }, '⏹ Stop'),
+    );
+    panelInner.append(btns);
+    panel.append(panelInner);
+    container.append(panel);
+  }
+
+  // Normal controls
+  if (!state.costPauseHit && (state.isRunning || state.messages.length > 0)) {
+    const footer = h('div', { class: 'footer' });
+    if (state.isRunning) {
+      footer.append(
+        h('button', { class: 'btn btn-yellow', onClick: doPause }, state.isPaused ? '▶ Hervat' : '⏸ Pauze'),
+        h('button', { class: 'btn btn-red', onClick: doStop }, '⏹ Stop'),
+      );
+    } else {
+      footer.append(h('button', { class: 'btn btn-muted', onClick: resetAll }, '🔄 Nieuw'));
+    }
+    if (state.messages.length > 0) {
+      footer.append(h('span', { style: { color: '#444', fontSize: '10px', lineHeight: '30px' } },
+        `~${Math.round(state.totalTokens/1000)}K tok • ${state.messages.filter(m=>m.role!=='user').length} msgs`));
+    }
+    container.append(footer);
+  }
+
+  // Error
+  if (state.error) {
+    container.append(h('div', { style: { padding: '6px 14px', textAlign: 'center' } },
+      h('span', { style: { background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '7px', padding: '4px 10px', color: '#fca5a5', fontSize: '11px' } }, '⚠️ ' + state.error),
+    ));
+  }
+
+  app.append(container);
+
+  // Scroll to bottom
+  setTimeout(() => endMarker.scrollIntoView({ behavior: 'smooth' }), 50);
+}
+
+// === ACTIONS ===
+function doStop() {
+  stopFlag = true;
+  pauseFlag = false;
+  state.isRunning = false;
+  state.isPaused = false;
+  state.costPauseHit = false;
+  state.thinking = '';
+  if (resolveWait) { resolveWait('__STOP__'); resolveWait = null; }
+  render();
+}
+
+function doPause() {
+  if (state.costPauseHit) return;
+  pauseFlag = !pauseFlag;
+  state.isPaused = pauseFlag;
+  render();
+}
+
+function doUserAction(text) {
+  if (resolveWait) { resolveWait(text); resolveWait = null; }
+  state.costPauseHit = false;
+  state.userInput = '';
+  pauseFlag = false;
+  state.isPaused = false;
+  costThreshold += 1.0;
+  render();
+}
+
+function resetAll() {
+  doStop();
+  state.messages = [];
+  state.round = 0;
+  state.error = null;
+  state.topic = '';
+  state.mode = null;
+  state.costEur = 0;
+  state.totalTokens = 0;
+  costTotal = 0;
+  costThreshold = 1.0;
+  state.screen = 'mode';
+  render();
+}
+
+async function startRun() {
+  if (!state.mode || !state.topic.trim()) return;
+  const cfg = MODES[state.mode];
+  state.screen = 'running';
+  state.isRunning = true;
+  state.error = null;
+  state.messages = [];
+  state.round = 0;
+  state.costEur = 0;
+  state.totalTokens = 0;
+  stopFlag = false;
+  pauseFlag = false;
+  costTotal = 0;
+  costThreshold = 1.0;
+  render();
+
+  let hA = [], hB = [];
+  let last = state.mode === 'mystery'
+    ? `We onderzoeken: "${state.topic}". Begin met je eerste analyse.`
+    : `We bouwen: "${state.topic}". Begin met architectuur of eerste component.`;
+
+  try {
+    for (let i = 0; i < state.maxRounds; i++) {
+      if (stopFlag) break;
+
+      // Manual pause wait
+      while (pauseFlag && !state.costPauseHit) {
+        await new Promise(r => setTimeout(r, 300));
+        if (stopFlag) break;
+      }
+      if (stopFlag) break;
+
+      // Cost check
+      if (costTotal >= costThreshold) {
+        state.costPauseHit = true;
+        state.isPaused = true;
+        pauseFlag = true;
+        render();
+        const ui = await new Promise(r => { resolveWait = r; });
+        if (ui === '__STOP__') break;
+        if (ui && ui !== '__GO__') {
+          state.messages.push({ role: 'user', emoji: '👤', name: 'Jij', text: ui });
+          last = `[TUSSENKOMST]: ${ui}\n\nVerwerk dit.`;
+        }
+      }
+      if (stopFlag) break;
+
+      // Claude A
+      state.thinking = cfg.roleA.name;
+      render();
+      hA.push({ role: 'user', content: last });
+      hA = trimHist(hA);
+      const rA = await callAPI(cfg.roleA.sys, hA);
+      hA.push({ role: 'assistant', content: rA });
+      state.thinking = '';
+      state.messages.push({ role: 'A', ...cfg.roleA, text: rA });
+      state.round = i + 1;
+      render();
+
+      if (stopFlag) break;
+      await new Promise(r => setTimeout(r, 400));
+
+      // Cost check before B
+      if (costTotal >= costThreshold) {
+        state.costPauseHit = true;
+        state.isPaused = true;
+        pauseFlag = true;
+        render();
+        const ui = await new Promise(r => { resolveWait = r; });
+        if (ui === '__STOP__') break;
+        if (ui && ui !== '__GO__') {
+          state.messages.push({ role: 'user', emoji: '👤', name: 'Jij', text: ui });
+          hB.push({ role: 'user', content: `[TUSSENKOMST]: ${ui}` });
+        }
+      }
+
+      while (pauseFlag && !state.costPauseHit) {
+        await new Promise(r => setTimeout(r, 300));
+        if (stopFlag) break;
+      }
+      if (stopFlag) break;
+
+      // Claude B
+      state.thinking = cfg.roleB.name;
+      render();
+      hB.push({ role: 'user', content: rA });
+      hB = trimHist(hB);
+      const rB = await callAPI(cfg.roleB.sys, hB);
+      hB.push({ role: 'assistant', content: rB });
+      state.thinking = '';
+      state.messages.push({ role: 'B', ...cfg.roleB, text: rB });
+      render();
+
+      last = rB;
+      await new Promise(r => setTimeout(r, 400));
+    }
+  } catch (e) {
+    state.error = e.message;
+  }
+  state.thinking = '';
+  state.isRunning = false;
+  render();
+}
+
+function trimHist(h) { return h.length <= MAX_CTX ? h : h.slice(-MAX_CTX); }
+
+// === INIT ===
+if (state.apiKey) state.screen = 'mode';
+render();
+
+// Register service worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
