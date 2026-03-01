@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0f0c29">
+<title>Claude vs Claude v7</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='80' font-size='80'>🤖</text></svg>">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>if(window.pdfjsLib)pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0f0c29;--bg2:#1a1a3e;--text:#e2e4ed;--muted:#8b8fa3;--dim:#555}
+html,body{height:100%;overflow:hidden}
+body{font-family:-apple-system,'Inter',system-ui,sans-serif;background:linear-gradient(135deg,var(--bg),var(--bg2),#24243e);color:var(--text);-webkit-tap-highlight-color:transparent}
+input,textarea,button,select{font-family:inherit}
+input::placeholder,textarea::placeholder{color:var(--dim)}
+textarea.inp{min-height:60px;resize:vertical;line-height:1.5}
+.app{display:flex;flex-direction:column;height:100vh;height:100dvh}
+.screen{flex:1;overflow-y:auto;padding:20px;padding-top:max(20px,env(safe-area-inset-top))}
+.center{max-width:560px;margin:0 auto}
+.card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:18px;cursor:pointer;text-align:left;transition:all .15s;margin-bottom:12px}
+.card:active{background:rgba(255,255,255,.1);transform:translateY(-1px)}
+.card.sel{border-color:var(--accent);background:rgba(255,255,255,.08)}
+.btn{padding:8px 18px;border-radius:9px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid;transition:opacity .15s;display:inline-flex;align-items:center;gap:4px}
+.btn:active{opacity:.7}
+.btn-g{background:rgba(34,197,94,.15);border-color:rgba(34,197,94,.4);color:#22c55e}
+.btn-y{background:rgba(234,179,8,.15);border-color:rgba(234,179,8,.4);color:#eab308}
+.btn-r{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.4);color:#ef4444}
+.btn-o{background:rgba(251,191,36,.15);border-color:rgba(251,191,36,.4);color:#fbbf24}
+.btn-m{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.15);color:#c4c7d4}
+.btn-p{background:rgba(139,92,246,.15);border-color:rgba(139,92,246,.4);color:#a78bfa}
+.btn-full{width:100%;padding:13px;border-radius:10px;border:none;font-size:14px;font-weight:600;color:#fff;cursor:pointer;text-align:center}
+.btn-full:disabled{background:rgba(255,255,255,.08)!important;color:var(--dim);cursor:default}
+.inp{width:100%;padding:12px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:#fff;font-size:14px;outline:none}
+.inp:focus{border-color:rgba(255,255,255,.3)}
+.inp-s{padding:9px 11px;font-size:12px;border-radius:8px}
+.tag{padding:3px 8px;border-radius:6px;font-size:11px;display:inline-block}
+.hdr{padding:8px 14px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;flex-wrap:wrap;gap:4px;padding-top:max(8px,env(safe-area-inset-top))}
+.ftr{padding:7px 14px;border-top:1px solid rgba(255,255,255,.08);display:flex;justify-content:center;gap:6px;flex-shrink:0;flex-wrap:wrap;padding-bottom:max(7px,env(safe-area-inset-bottom))}
+.msgs{flex:1;overflow-y:auto;padding:10px 14px;-webkit-overflow-scrolling:touch}
+.msgs-in{max-width:660px;margin:0 auto}
+.msg{margin-bottom:10px;display:flex;flex-direction:column}
+.msg-a{align-items:flex-start}.msg-b{align-items:flex-end}.msg-u{align-items:center}.msg-sys{align-items:center}
+.msg-l{font-size:10px;margin-bottom:2px;padding:0 3px}
+.msg-bub{padding:8px 12px;max-width:88%;font-size:13px;line-height:1.6;white-space:pre-wrap;word-break:break-word}
+.msg-a .msg-bub{border-radius:3px 12px 12px 12px}
+.msg-b .msg-bub{border-radius:12px 3px 12px 12px}
+.msg-u .msg-bub{border-radius:10px;background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.3);color:#fde68a}
+.msg-sys .msg-bub{border-radius:10px;background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.25);color:#c4b5fd;font-style:italic}
+.cost{background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.25);border-radius:5px;padding:2px 7px;font-size:11px;color:#86efac;font-family:monospace}
+.pause-p{padding:12px 14px;border-top:1px solid rgba(251,191,36,.3);background:rgba(251,191,36,.08);flex-shrink:0}
+.sum-p{padding:14px;border-top:1px solid rgba(139,92,246,.3);background:rgba(139,92,246,.08);flex-shrink:0;max-height:40vh;overflow-y:auto}
+.docs-bar{padding:8px 14px;border-bottom:1px solid rgba(255,255,255,.06);flex-shrink:0;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.doc-chip{background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.25);border-radius:8px;padding:3px 8px;font-size:11px;color:#a5b4fc;display:inline-flex;align-items:center;gap:4px}
+.doc-chip button{background:none;border:none;color:#a5b4fc;cursor:pointer;font-size:13px;padding:0 2px}
+.drop-zone{border:2px dashed rgba(255,255,255,.15);border-radius:12px;padding:20px;text-align:center;color:var(--dim);font-size:12px;cursor:pointer;transition:all .15s;margin-bottom:14px}
+.drop-zone.over{border-color:rgba(99,102,241,.5);background:rgba(99,102,241,.05)}
+.key-s{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:24px}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+.pulse{animation:pulse 1.5s infinite}
+.spin{display:inline-block;animation:spin 1s linear infinite}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+// ==================== STORAGE & PROFILE & SESSIONS ====================
+const store={get(k,d=null){try{const v=localStorage.getItem('cvc_'+k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem('cvc_'+k,JSON.stringify(v))}catch(e){}}};
+const defaultProfile={name:'',context:'',instructions:'',active:true};
+const profile=store.get('profile',{...defaultProfile});
+const sessions=store.get('sessions',[]);
+function saveSession(){const s={id:Date.now(),date:new Date().toISOString(),mode:S.mode,topic:S.topic,model:S.model,modelB:S.modelB,cost:S.cost,rounds:S.rnd,summary:S.summary||'',msgCount:S.msgs.length};if(sessions.length&&sessions[0].topic===S.topic&&sessions[0].mode===S.mode){sessions[0]=s}else{sessions.unshift(s)}if(sessions.length>30)sessions.length=30;store.set('sessions',sessions)}
+
+// ==================== STATE ====================
+const S = {
+  scr:'key', apiKey:localStorage.getItem('cvc_key')||'',
+  xaiKey:localStorage.getItem('cvc_xai_key')||'',
+  mode:null, model:'claude-sonnet-4-6', modelB:store.get('modelB','grok-4-latest'), topic:'', maxR:20,
+  msgs:[], run:false, pause:false, rnd:0, cost:0, tok:0,
+  costPause:false, think:'', err:null, uInput:'',
+  docs:[], summary:null, stopped:false,
+  // For resume
+  histA:[], histB:[], lastResp:'',
+};
+
+let stopF=false, pauseF=false, costT=0, costTh=1.0, resW=null;
+
+// ==================== CONFIG ====================
+const MODELS={
+  'claude-opus-4-6':{l:'Claude Opus 4.6',e:'🧠',d:'Slimste Claude — complex redeneren',ic:5,oc:25,c:'#a78bfa',provider:'anthropic'},
+  'claude-sonnet-4-6':{l:'Claude Sonnet 4.6',e:'⚡',d:'Nieuwste Sonnet — Opus-niveau',ic:3,oc:15,c:'#60a5fa',provider:'anthropic'},
+  'claude-sonnet-4-5-20250929':{l:'Claude Sonnet 4.5',e:'💨',d:'Betrouwbare vorige Sonnet',ic:3,oc:15,c:'#34d399',provider:'anthropic'},
+  'grok-4-latest':{l:'Grok 4',e:'🔮',d:'Nieuwste Grok — sterk in redeneren',ic:3,oc:15,c:'#f97316',provider:'xai'},
+  'grok-3-latest':{l:'Grok 3',e:'🌀',d:'Snel & goedkoop Grok',ic:0.2,oc:1,c:'#fb923c',provider:'xai'},
+};
+
+const MODES={
+  mystery:{l:'🔍 Onderzoek & Analyse',d:'Twee Claude\'s onderzoeken samen elk onderwerp',
+    rA:{n:'Onderzoeker',e:'🔬',bg:'rgba(99,102,241,.15)',bc:'rgba(99,102,241,.25)',tB:'rgba(99,102,241,.2)',tC:'#a5b4fc',
+      s:'Je bent een analytische onderzoeker. Je werkt SAMEN met De Theoreticus aan het onderwerp van de opdrachtgever.\n\nJe hebt toegang tot WEB SEARCH. Gebruik dit om feiten te verifiëren en actuele informatie op te zoeken.\n\nREGELS:\n- BLIJF ALTIJD bij het onderwerp. Dwaal NOOIT af.\n- Geen ego, geen competitie. Jullie zijn een team.\n- Bouw voort op elkaars ideeën\n- Feiten, bewijs, logica\n- ALTIJD Nederlands, max 150 woorden\n- Eindig met een inhoudelijke vraag over het ONDERWERP'},
+    rB:{n:'Theoreticus',e:'🧠',bg:'rgba(236,72,153,.12)',bc:'rgba(236,72,153,.2)',tB:'rgba(236,72,153,.2)',tC:'#f9a8d4',
+      s:'Je bent een creatieve theoreticus. Je werkt SAMEN met De Onderzoeker aan het onderwerp van de opdrachtgever.\n\nJe hebt toegang tot WEB SEARCH. Gebruik dit om aanvullende informatie en nieuwe invalshoeken te vinden.\n\nREGELS:\n- BLIJF ALTIJD bij het onderwerp. Dwaal NOOIT af.\n- Geen ego, geen competitie. Jullie zijn een team.\n- Bouw voort op elkaars ideeën\n- Creatieve hypotheses, onverwachte verbanden\n- ALTIJD Nederlands, max 150 woorden\n- Eindig met een inhoudelijke vraag over het ONDERWERP'},
+  },
+  dev:{l:'💻 Dev Pair Programming',d:'Eén schrijft code, de ander reviewt',
+    rA:{n:'Developer',e:'⌨️',bg:'rgba(34,197,94,.12)',bc:'rgba(34,197,94,.25)',tB:'rgba(34,197,94,.2)',tC:'#86efac',
+      s:'Senior full-stack developer. Werkt SAMEN met Reviewer.\n- Concrete code, korte uitleg\n- BLIJF bij het project, dwaal niet af\n- Nederlands, code Engels\n- Max 150 woorden + code, één component per beurt'},
+    rB:{n:'Reviewer',e:'🔍',bg:'rgba(245,158,11,.12)',bc:'rgba(245,158,11,.25)',tB:'rgba(245,158,11,.2)',tC:'#fcd34d',
+      s:'Senior code reviewer & architect. Werkt SAMEN met Developer.\n- Kritisch maar constructief: bugs, security, performance\n- BLIJF bij het project, geen ego\n- Nederlands, max 150 woorden\n- Status: APPROVED / NEEDS CHANGES / BLOCKER'},
+  },
+  vs:{l:'🤖 vs 🔮 Claude vs Grok',d:'Claude en Grok debatteren over een onderwerp',
+    rA:{n:'Claude',e:'🤖',bg:'rgba(99,102,241,.15)',bc:'rgba(99,102,241,.25)',tB:'rgba(99,102,241,.2)',tC:'#a5b4fc',
+      s:'Je bent Claude (Anthropic). Je voert een inhoudelijk gesprek met Grok (xAI) over het opgegeven onderwerp.\n\nJe hebt toegang tot WEB SEARCH. Gebruik dit om feiten te verifiëren.\n\nREGELS:\n- BLIJF ALTIJD bij het onderwerp. Geen meta-discussie over AI of over elkaar.\n- Als Grok afdwaalt of persoonlijk wordt, negeer dat en stuur terug naar het ONDERWERP.\n- Analytisch, eerlijk, genuanceerd\n- ALTIJD Nederlands, max 150 woorden\n- Eindig met een inhoudelijke vraag over het ONDERWERP',
+      provider:'anthropic'},
+    rB:{n:'Grok',e:'🔮',bg:'rgba(249,115,22,.12)',bc:'rgba(249,115,22,.25)',tB:'rgba(249,115,22,.2)',tC:'#fdba74',
+      s:'Je bent Grok (xAI). Je voert een inhoudelijk gesprek met Claude (Anthropic) over het opgegeven onderwerp.\n\nREGELS:\n- BLIJF ALTIJD bij het onderwerp. NOOIT afdwalen naar wie beter is of meta-discussie.\n- NOOIT de ander kleineren, uitlachen of persoonlijk worden.\n- Wees inhoudelijk, scherp en constructief\n- ALTIJD Nederlands, max 120 woorden\n- Eindig met een inhoudelijke vraag over het ONDERWERP',
+      provider:'xai'},
+  },
+};
+
+const MC=12;
+
+// ==================== HELPERS ====================
+const $=s=>document.querySelector(s);
+function el(t,a,...k){const e=document.createElement(t);if(a)Object.entries(a).forEach(([p,v])=>{if(p==='style'&&typeof v==='object')Object.assign(e.style,v);else if(p.startsWith('on'))e.addEventListener(p.slice(2).toLowerCase(),v);else e.setAttribute(p,v)});k.flat().forEach(c=>{if(c!=null)e.append(typeof c==='string'?document.createTextNode(c):c)});return e}
+const eTok=t=>Math.ceil((t||'').length/3.5);
+const trim=h=>h.length<=MC?h:h.slice(-MC);
+
+function buildDocContext(){
+  if(!S.docs.length)return '';
+  return '\n\n--- DOCUMENTEN ---\n'+S.docs.map(d=>`[${d.name}]:\n${d.content.slice(0,8000)}`).join('\n\n')+'\n--- EINDE DOCUMENTEN ---';
+}
+function buildProfileCtx(){
+  if(!profile.active||(!profile.name&&!profile.context&&!profile.instructions))return '';
+  let c='\n\n--- PROFIEL OPDRACHTGEVER ---\n';
+  if(profile.name)c+='Naam: '+profile.name+'\n';
+  if(profile.context)c+='Context: '+profile.context+'\n';
+  if(profile.instructions)c+='Instructies: '+profile.instructions+'\n';
+  return c+'--- EINDE PROFIEL ---';
+}
+function buildMemCtx(){
+  if(!sessions.length)return '';
+  let c='\n\n--- EERDER BESPROKEN ---\n';
+  sessions.slice(0,3).forEach(s=>{const d=new Date(s.date).toLocaleDateString('nl-NL');c+=`[${d}] ${MODES[s.mode]?.l||s.mode}: "${s.topic}" (${s.rounds}r)\n`;if(s.summary)c+='Conclusie: '+s.summary.slice(0,200)+'\n'});
+  return c+'---';
+}
+
+async function callAPI(sys,msgs,providerOverride,modelOverride){
+  const mod=modelOverride||S.model;
+  const m=MODELS[mod];
+  const prov=providerOverride||m.provider||'anthropic';
+  const fullSys=sys+buildProfileCtx()+buildMemCtx()+buildDocContext();
+  const inT=eTok(fullSys+JSON.stringify(msgs));
+  let out='';
+
+  if(prov==='xai'){
+    // xAI/Grok uses OpenAI-compatible format
+    const grokMsgs=[{role:'system',content:fullSys},...msgs];
+    const r=await fetch('https://api.x.ai/v1/chat/completions',{
+      method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+S.xaiKey},
+      body:JSON.stringify({model:mod,max_tokens:600,messages:grokMsgs,temperature:0.7}),
+    });
+    if(!r.ok){const t=await r.text();throw new Error(`Grok API ${r.status}: ${t.slice(0,200)}`);}
+    const d=await r.json();
+    out=d.choices?.[0]?.message?.content||'';
+  }else{
+    // Anthropic with web search
+    const body={model:mod,max_tokens:1024,system:fullSys,messages:msgs,
+      tools:[{type:'web_search_20250305',name:'web_search',max_uses:3,
+        user_location:{type:'approximate',country:'NL',timezone:'Europe/Amsterdam'}}]};
+    const hdrs={'Content-Type':'application/json','x-api-key':S.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'};
+    let d,retries=0;
+    while(retries<3){
+      const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:hdrs,body:JSON.stringify(body)});
+      if(r.status===429){
+        retries++;S.think=(S.think||'Claude')+' ⏳ rate limit, wacht...';render();
+        await new Promise(w=>setTimeout(w,15000*retries));continue;
+      }
+      if(!r.ok){const t=await r.text();throw new Error(`Claude API ${r.status}: ${t.slice(0,200)}`);}
+      d=await r.json();break;
+    }
+    if(!d)throw new Error('Rate limit na 3 pogingen. Wacht even en hervat.');
+    // Extract text from all content blocks (web search results are handled server-side)
+    out=d.content.filter(c=>c.type==='text').map(c=>c.text).join('\n');
+    // Track if search was used
+    const searched=d.content.some(c=>c.type==='web_search_tool_result');
+    if(searched)out='🔍 '+out;
+  }
+
+  const outT=eTok(out);
+  const cost=((inT/1e6)*m.ic+(outT/1e6)*m.oc)*0.92;
+  costT+=cost;S.cost=costT;S.tok+=inT+outT;
+  return out;
+}
+
+async function generateSummary(extended){
+  const conv=S.msgs.filter(m=>m.role!=='user').map(m=>`${m.n}: ${m.text}`).join('\n\n');
+  const sys=extended
+    ?'Je bent een uitgebreide rapporteur. Maak een gedetailleerd Nederlands rapport van het volgende gesprek.\n\nStructuur:\n1. ONDERWERP & CONTEXT — wat werd besproken en waarom\n2. BELANGRIJKSTE BEVINDINGEN — alle key inzichten, per punt uitgewerkt\n3. STANDPUNTEN — waar waren de deelnemers het eens/oneens\n4. CONCLUSIES — wat is vastgesteld\n5. OPENSTAANDE VRAGEN — wat moet nog uitgezocht\n6. AANBEVELINGEN — concrete vervolgstappen\n\nWees grondig. Gebruik alle relevante details uit het gesprek. Minimaal 500 woorden.'
+    :'Je bent een samenvatter. Maak een heldere Nederlandse samenvatting van het volgende gesprek. Noem de belangrijkste conclusies, openstaande vragen, en mogelijke vervolgstappen. Max 200 woorden.';
+  const r=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',headers:{'Content-Type':'application/json','x-api-key':S.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({model:S.model,max_tokens:extended?2000:500,system:sys,messages:[{role:'user',content:conv}]}),
+  });
+  if(!r.ok)return 'Kon geen samenvatting maken.';
+  const d=await r.json();return d.content.map(c=>c.text||'').join('\n');
+}
+
+async function readFile(file){
+  return new Promise(async(res,rej)=>{
+    const name=file.name, ext=name.split('.').pop().toLowerCase();
+    try{
+      // PDF
+      if(ext==='pdf'&&window.pdfjsLib){
+        const buf=await file.arrayBuffer();
+        const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+        let text='';
+        for(let i=1;i<=pdf.numPages;i++){
+          const page=await pdf.getPage(i);
+          const tc=await page.getTextContent();
+          text+=tc.items.map(it=>it.str).join(' ')+'\n\n';
+        }
+        res({name,content:text.trim()||'[PDF zonder leesbare tekst: '+name+']',type:'pdf'});
+        return;
+      }
+      // Word DOCX
+      if((ext==='docx'||ext==='doc')&&window.mammoth){
+        const buf=await file.arrayBuffer();
+        const result=await mammoth.extractRawText({arrayBuffer:buf});
+        res({name,content:result.value.trim()||'[Leeg Word document: '+name+']',type:'docx'});
+        return;
+      }
+      // Images
+      if(file.type.startsWith('image/')){
+        res({name,content:'[Afbeelding: '+name+']',type:'image'});
+        return;
+      }
+      // Plain text / code / etc
+      const r=new FileReader();
+      r.onload=()=>res({name,content:r.result,type:'text'});
+      r.onerror=()=>rej(new Error('Kan bestand niet lezen'));
+      r.readAsText(file);
+    }catch(e){rej(e)}
+  });
+}
+
+// ==================== RENDER ====================
+function render(){
+  const a=$('#app');a.innerHTML='';
+  if(S.scr==='key')return rKey(a);
+  if(S.scr==='mode')return rMode(a);
+  if(S.scr==='model')return rModel(a);
+  if(S.scr==='topic')return rTopic(a);
+  if(S.scr==='running')return rRun(a);
+  if(S.scr==='profile')return rProfile(a);
+  if(S.scr==='history')return rHistory(a);
+}
+
+function exportTranscript(format){
+  const cfg=MODES[S.mode],m=MODELS[S.model];
+  const datum=new Date().toLocaleDateString('nl-NL',{day:'numeric',month:'long',year:'numeric'});
+  const tijd=new Date().toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'});
+  const slug=S.topic.replace(/[^a-zA-Z0-9]/g,'_').slice(0,30);
+
+  if(format==='md'){
+    let md=`# ${cfg?.l}: ${S.topic}\n**Datum:** ${datum} ${tijd} | **Model:** ${m?.l} | **Rondes:** ${S.rnd} | **Kosten:** €${S.cost.toFixed(3)}\n\n---\n\n`;
+    S.msgs.forEach(m=>{md+=`### ${m.e} ${m.n}\n${m.text}\n\n`});
+    if(S.summary)md+=`---\n\n### 📋 Samenvatting\n${S.summary}\n`;
+    const b=new Blob([md],{type:'text/markdown'}),u=URL.createObjectURL(b),a=document.createElement('a');
+    a.href=u;a.download=`cvc_${slug}.md`;a.click();URL.revokeObjectURL(u);
+    return;
+  }
+
+  // HTML transcript (styled for print/PDF/share)
+  let msgs='';
+  S.msgs.forEach(m=>{
+    const bg=m.role==='a'?'#1e1b4b':m.role==='b'?'#2d1b3d':m.role==='summary'?'#1b2e1b':'#1b1b2e';
+    const bc=m.role==='a'?'#6366f1':m.role==='b'?'#ec4899':m.role==='summary'?'#22c55e':'#666';
+    msgs+=`<div style="background:${bg};border-left:3px solid ${bc};border-radius:8px;padding:14px;margin-bottom:12px">
+      <div style="font-weight:600;margin-bottom:6px;color:${bc}">${m.e} ${m.n}</div>
+      <div style="color:#e2e8f0;line-height:1.6;white-space:pre-wrap">${m.text.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+    </div>`;
+  });
+
+  const html=`<!DOCTYPE html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${cfg?.l}: ${S.topic}</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:#0f0c29;color:#fff;padding:20px;max-width:800px;margin:0 auto}
+@media print{body{background:#fff;color:#000;padding:10px}
+  div[style*="background:#1e1b4b"],div[style*="background:#2d1b3d"],div[style*="background:#1b2e1b"],div[style*="background:#1b1b2e"]{background:#f5f5f5!important;border:1px solid #ddd!important}
+  div[style*="color:#e2e8f0"]{color:#000!important}
+  .header{background:#f0f0f0!important;color:#000!important}
+  .header *{color:#333!important}
+  .stat{background:#eee!important;color:#333!important}
+}
+.header{background:linear-gradient(135deg,#1e1b4b,#312e81);border-radius:12px;padding:24px;margin-bottom:24px;text-align:center}
+.stats{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px}
+.stat{background:rgba(255,255,255,.1);padding:4px 12px;border-radius:6px;font-size:12px;color:#a5b4fc}
+.share-btn{display:block;margin:20px auto;padding:12px 24px;background:#6366f1;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer}
+.share-btn:hover{background:#4f46e5}
+@media print{.no-print{display:none!important}}
+</style></head><body>
+<div class="header">
+  <div style="font-size:14px;color:#a5b4fc;margin-bottom:4px">Claude vs Claude</div>
+  <h1 style="font-size:22px;font-weight:700;margin-bottom:4px">${cfg?.l}</h1>
+  <div style="font-size:16px;color:#c4b5fd">"${S.topic.replace(/"/g,'&quot;')}"</div>
+  <div class="stats">
+    <span class="stat">📅 ${datum} ${tijd}</span>
+    <span class="stat">🤖 ${m?.l||'Claude'}</span>
+    <span class="stat">🔄 ${S.rnd} rondes</span>
+    <span class="stat">💰 €${S.cost.toFixed(3)}</span>
+    <span class="stat">💬 ${S.msgs.length} berichten</span>
+  </div>
+</div>
+${msgs}
+<div class="no-print" style="text-align:center;margin-top:24px;padding:16px;border-top:1px solid rgba(255,255,255,.1)">
+  <button class="share-btn" onclick="window.print()">🖨️ Opslaan als PDF</button>
+  <div style="color:#666;font-size:11px;margin-top:8px">Gebruik "Opslaan als PDF" in het printmenu</div>
+</div>
+</body></html>`;
+
+  const blob=new Blob([html],{type:'text/html'});
+  const url=URL.createObjectURL(blob);
+
+  // Try native share API first (mobile)
+  if(format==='share'&&navigator.share){
+    const file=new File([blob],`cvc_${slug}.html`,{type:'text/html'});
+    navigator.share({title:`${cfg?.l}: ${S.topic}`,files:[file]}).catch(()=>{});
+    return;
+  }
+
+  // Open in new tab for print/PDF
+  window.open(url,'_blank');
+}
+
+function rKey(a){
+  const w=el('div',{class:'key-s'});
+  const ki=el('input',{class:'inp',type:'password',placeholder:'sk-ant-... (Anthropic)',value:S.apiKey,style:{maxWidth:'400px',marginBottom:'8px'},onInput:e=>{S.apiKey=e.target.value}});
+  const xi=el('input',{class:'inp',type:'password',placeholder:'xai-... (Grok / xAI) — optioneel',value:S.xaiKey,style:{maxWidth:'400px',marginBottom:'8px'},onInput:e=>{S.xaiKey=e.target.value}});
+  w.append(
+    el('div',{style:{fontSize:'46px',marginBottom:'10px'}},'🤖⚡🔮'),
+    el('h1',{style:{color:'#fff',fontSize:'24px',fontWeight:'700',marginBottom:'6px'}},'Claude vs Claude / Grok'),
+    el('p',{style:{color:'#666',fontSize:'11px',marginBottom:'20px'}},'v7 — Profielen & Geheugen'),
+    el('p',{style:{color:'#8b8fa3',fontSize:'13px',marginBottom:'4px'}},'Voer je API keys in'),
+    el('p',{style:{color:'#a5b4fc',fontSize:'11px',marginBottom:'4px',maxWidth:'400px'}},'Anthropic (verplicht)'),
+    ki,
+    el('p',{style:{color:'#fdba74',fontSize:'11px',marginBottom:'4px',maxWidth:'400px',marginTop:'8px'}},'xAI / Grok (optioneel — voor Claude vs Grok modus)'),
+    xi,
+    el('p',{style:{color:'#555',fontSize:'10px',marginBottom:'14px',maxWidth:'400px',textAlign:'center'}},'Keys worden lokaal opgeslagen • console.anthropic.com • console.x.ai'),
+    el('button',{class:'btn-full',style:{maxWidth:'400px',background:S.apiKey.trim()?'linear-gradient(135deg,#6366f1,#f97316)':void 0},onClick:saveK},'🔐 Opslaan & starten'),
+  );
+  if(localStorage.getItem('cvc_key')||localStorage.getItem('cvc_xai_key'))w.append(el('button',{class:'btn btn-m',style:{marginTop:'10px'},onClick:()=>{localStorage.removeItem('cvc_key');localStorage.removeItem('cvc_xai_key');S.apiKey='';S.xaiKey='';render()}},'🗑️ Keys verwijderen'));
+  a.append(w);
+}
+
+function saveK(){if(!S.apiKey.trim())return;localStorage.setItem('cvc_key',S.apiKey.trim());if(S.xaiKey.trim())localStorage.setItem('cvc_xai_key',S.xaiKey.trim());S.scr='mode';render()}
+
+function rMode(a){
+  const w=el('div',{class:'screen'}),inner=el('div',{class:'center'});
+  inner.append(el('div',{style:{textAlign:'center',marginBottom:'28px',paddingTop:'20px'}},
+    el('div',{style:{fontSize:'44px',marginBottom:'6px'}},'🤖⚡🔮'),
+    el('h1',{style:{color:'#fff',fontSize:'24px',fontWeight:'700',marginBottom:'4px'}},'Claude vs Claude / Grok'),
+    el('p',{style:{color:'#8b8fa3',fontSize:'13px'}},'Twee AI\'s, één gesprek'),
+    el('p',{style:{color:'#555',fontSize:'11px',marginTop:'4px'}},'🔍 Web Search • 📎 Docs • ⏸ €1 pauze • 💬 Chat mee • 👤 Profiel'),
+  ));
+  // Toolbar
+  const bar=el('div',{style:{display:'flex',gap:'6px',marginBottom:'16px',justifyContent:'center',flexWrap:'wrap'}});
+  bar.append(el('button',{class:'btn btn-p',style:{fontSize:'11px'},onClick:()=>{S.scr='profile';render()}},'👤 '+(profile.name||'Profiel')));
+  bar.append(el('button',{class:'btn btn-m',style:{fontSize:'11px'},onClick:()=>{S.scr='history';render()}},'📜 Sessies ('+sessions.length+')'));
+  bar.append(el('button',{class:'btn btn-m',style:{fontSize:'11px'},onClick:()=>{S.scr='key';render()}},'⚙️ Keys'));
+  inner.append(bar);
+  Object.entries(MODES).forEach(([k,v])=>{
+    // Hide Claude vs Grok if no xAI key
+    if(k==='vs'&&!S.xaiKey){return}
+    inner.append(el('div',{class:'card',onClick:()=>{S.mode=k;S.scr=k==='vs'?'topic':'model';render()}},
+      el('div',{style:{fontSize:'18px',fontWeight:'600',color:'#fff',marginBottom:'4px'}},v.l),
+      el('div',{style:{color:'#8b8fa3',fontSize:'13px',marginBottom:'10px'}},v.d),
+      el('div',{style:{display:'flex',gap:'6px',alignItems:'center'}},
+        el('span',{class:'tag',style:{background:v.rA.tB,color:v.rA.tC}},v.rA.e+' '+v.rA.n),
+        el('span',{style:{color:'#555',fontSize:'11px'}},'vs'),
+        el('span',{class:'tag',style:{background:v.rB.tB,color:v.rB.tC}},v.rB.e+' '+v.rB.n),
+      ),
+    ));
+  });
+  if(!S.xaiKey){
+    inner.append(el('div',{style:{background:'rgba(249,115,22,.08)',border:'1px solid rgba(249,115,22,.2)',borderRadius:'10px',padding:'12px',marginBottom:'12px'}},
+      el('div',{style:{color:'#fdba74',fontSize:'12px'}},'🔮 Claude vs Grok beschikbaar na toevoegen van xAI key'),
+      el('button',{class:'btn btn-o',style:{marginTop:'8px',fontSize:'11px'},onClick:()=>{S.scr='key';render()}},'xAI key toevoegen'),
+    ));
+  }
+  w.append(inner);a.append(w);
+}
+
+function rModel(a){
+  const w=el('div',{class:'screen'}),inner=el('div',{class:'center'});
+  inner.append(
+    el('button',{class:'btn btn-m',style:{marginBottom:'14px',fontSize:'11px'},onClick:()=>{S.scr='mode';render()}},'← Terug'),
+    el('h2',{style:{color:'#fff',fontSize:'18px',fontWeight:'600',marginBottom:'4px'}},'Kies Claude model'),
+    el('p',{style:{color:'#8b8fa3',fontSize:'12px',marginBottom:'14px'}},'Slimmer = duurder, betere resultaten'),
+  );
+  Object.entries(MODELS).filter(([_,m])=>m.provider==='anthropic').forEach(([id,m])=>{
+    const sel=S.model===id;
+    inner.append(el('div',{class:'card'+(sel?' sel':''),style:{borderColor:sel?m.c:void 0,background:sel?m.c+'18':void 0},onClick:()=>{S.model=id;render()}},
+      el('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center'}},
+        el('div',{},
+          el('span',{style:{fontSize:'15px',fontWeight:'600',color:'#fff'}},m.e+' '+m.l),
+          el('span',{style:{color:'#555',fontSize:'11px',marginLeft:'8px'}},m.d),
+        ),
+        sel?el('span',{style:{color:m.c,fontSize:'16px'}},'✓'):null,
+      ),
+      el('div',{style:{marginTop:'6px',color:'#8b8fa3',fontSize:'11px'}},'$'+m.ic+'/M in • $'+m.oc+'/M out'),
+    ));
+  });
+  const m=MODELS[S.model];
+  inner.append(el('button',{class:'btn-full',style:{marginTop:'14px',background:'linear-gradient(135deg,'+m.c+','+m.c+'88)'},onClick:()=>{S.scr='topic';render()}},'Verder met '+m.l+' →'));
+  w.append(inner);a.append(w);
+}
+
+function rTopic(a){
+  const w=el('div',{class:'screen'}),inner=el('div',{class:'center'}),cfg=MODES[S.mode],m=MODELS[S.model];
+  inner.append(
+    el('button',{class:'btn btn-m',style:{marginBottom:'14px',fontSize:'11px'},onClick:()=>{S.scr=S.mode==='vs'?'mode':'model';render()}},'← '+(S.mode==='vs'?'Terug':'Model')),
+    el('div',{style:{display:'flex',alignItems:'center',gap:'8px',marginBottom:'16px'}},
+      el('span',{style:{color:'#fff',fontWeight:'600',fontSize:'15px'}},cfg.l),
+      el('span',{class:'tag',style:{background:m.c+'25',color:m.c}},m.e+' '+m.l),
+    ),
+  );
+
+  // Document upload zone
+  // Grok model selector (vs mode)
+  if(S.mode==='vs'&&S.xaiKey){
+    const gsel=el('select',{style:{width:'100%',padding:'10px 12px',borderRadius:'9px',border:'1px solid rgba(255,255,255,.15)',background:'rgba(255,255,255,.06)',color:'#fff',fontSize:'13px',marginBottom:'14px'},onChange:e=>{S.modelB=e.target.value;store.set('modelB',S.modelB)}});
+    Object.entries(MODELS).filter(([_,m])=>m.provider==='xai').forEach(([id,m])=>{const o=el('option',{value:id},m.e+' '+m.l+' — $'+m.ic+'/M in');o.style.background='#1a1a3e';if(id===S.modelB)o.selected=true;gsel.append(o)});
+    inner.append(el('label',{style:{color:'#fdba74',fontSize:'12px',display:'block',marginBottom:'4px'}},'🔮 Grok model'),gsel);
+  }
+  // Profile/memory indicator
+  if(profile.active&&(profile.name||sessions.length)){
+    const ind=el('div',{style:{marginBottom:'12px',display:'flex',gap:'6px',flexWrap:'wrap'}});
+    if(profile.name)ind.append(el('span',{style:{background:'rgba(139,92,246,.12)',color:'#c4b5fd',padding:'2px 7px',borderRadius:'5px',fontSize:'10px'}},'👤 '+profile.name));
+    if(sessions.length)ind.append(el('span',{style:{background:'rgba(99,102,241,.12)',color:'#a5b4fc',padding:'2px 7px',borderRadius:'5px',fontSize:'10px'}},'📜 '+Math.min(sessions.length,3)+' in geheugen'));
+    inner.append(ind);
+  }
+
+  // Document upload zone
+  const dz=el('div',{class:'drop-zone',
+    onClick:()=>{const fi=document.createElement('input');fi.type='file';fi.multiple=true;fi.accept='.txt,.md,.csv,.json,.js,.py,.html,.css,.pdf,.doc,.docx,.rtf,.xml,.yaml,.yml,.log,.sql';fi.onchange=e=>handleFiles(e.target.files);fi.click()},
+    onDragover:e=>{e.preventDefault();dz.classList.add('over')},
+    onDragleave:()=>dz.classList.remove('over'),
+    onDrop:e=>{e.preventDefault();dz.classList.remove('over');handleFiles(e.dataTransfer.files)},
+  },
+    el('div',{style:{fontSize:'24px',marginBottom:'6px'}},'📎'),
+    el('div',{},'Sleep documenten hierheen of tik om te uploaden'),
+    el('div',{style:{fontSize:'10px',marginTop:'4px',color:'#444'}},'.pdf .docx .txt .md .csv .json .js .py .html'),
+  );
+  inner.append(dz);
+
+  // Show uploaded docs
+  if(S.docs.length){
+    const docsDiv=el('div',{style:{marginBottom:'14px',display:'flex',gap:'6px',flexWrap:'wrap'}});
+    S.docs.forEach((d,i)=>{
+      docsDiv.append(el('span',{class:'doc-chip'},
+        '📄 '+d.name,
+        el('button',{onClick:e=>{e.stopPropagation();S.docs.splice(i,1);render()}},'✕'),
+      ));
+    });
+    inner.append(docsDiv);
+  }
+
+  inner.append(el('label',{style:{color:'#c4c7d4',fontSize:'13px',display:'block',marginBottom:'6px'}},S.mode==='mystery'?'Wat wil je onderzoeken?':S.mode==='vs'?'Waarover debatteren?':'Wat moeten ze bouwen?'));
+  const ti=el('input',{class:'inp',type:'text',value:S.topic,placeholder:S.mode==='mystery'?'bijv. Quantum computing, NDE, marketingstrategie...':S.mode==='vs'?'bijv. Heeft bewustzijn een fysieke basis?':'bijv. Snypher 2.0 GPS dispatch',style:{marginBottom:'14px'},onInput:e=>{S.topic=e.target.value;const b=$('#start-btn');if(b){const ok=!!S.topic.trim();b.style.background=ok?'linear-gradient(135deg,'+m.c+',#ec4899)':'rgba(255,255,255,.08)';b.style.color=ok?'#fff':'#555';b.style.opacity=ok?'1':'0.5'}},onKeydown:e=>{if(e.key==='Enter'&&S.topic.trim())startRun()}});
+  inner.append(ti);
+
+  inner.append(el('div',{style:{marginBottom:'14px'}},
+    el('label',{style:{color:'#8b8fa3',fontSize:'11px',display:'block',marginBottom:'4px'}},'Max rondes: '+S.maxR+' (pauzeert elke €1)'),
+    el('input',{type:'range',min:'3',max:'40',value:String(S.maxR),style:{width:'100%',accentColor:m.c},onInput:e=>{S.maxR=+e.target.value;render()}}),
+  ));
+
+  const startBtn=el('button',{class:'btn-full',id:'start-btn',onClick:()=>{if(S.topic.trim())startRun()}},'🚀 Start');
+  function updateStart(){const ok=!!S.topic.trim();startBtn.style.background=ok?'linear-gradient(135deg,'+m.c+',#ec4899)':'rgba(255,255,255,.08)';startBtn.style.color=ok?'#fff':'#555';startBtn.style.opacity=ok?'1':'0.5'}
+  updateStart();
+  inner.append(startBtn);
+  w.append(inner);a.append(w);ti.focus();
+}
+
+async function handleFiles(files){
+  for(const f of files){
+    try{const d=await readFile(f);S.docs.push(d)}catch(e){console.error(e)}
+  }
+  render();
+}
+
+function rRun(a){
+  const c=el('div',{class:'app'}),cfg=MODES[S.mode],m=MODELS[S.model];
+
+  // Header
+  c.append(el('div',{class:'hdr'},
+    el('div',{style:{display:'flex',alignItems:'center',gap:'6px'}},
+      el('button',{class:'btn btn-m',style:{padding:'3px 7px',fontSize:'10px'},onClick:()=>{if(S.run)doStop();else resetAll()}},'←'),
+      el('span',{style:{color:'#fff',fontWeight:'600',fontSize:'13px'}},cfg.l),
+      el('span',{class:'tag',style:{background:m.c+'25',color:m.c,fontSize:'10px'}},m.l),
+      S.mode==='vs'?el('span',{class:'tag',style:{background:'rgba(249,115,22,.15)',color:'#fdba74',fontSize:'10px'}},MODELS[S.modelB]?.l||''):null,
+    ),
+    el('div',{style:{display:'flex',alignItems:'center',gap:'8px'}},
+      el('span',{class:'cost'},'€'+S.cost.toFixed(3)),
+      S.run?el('div',{style:{display:'flex',alignItems:'center',gap:'3px'}},
+        el('div',{style:{width:'6px',height:'6px',borderRadius:'50%',background:S.pause?'#eab308':'#22c55e'},class:S.pause?'':'pulse'}),
+        el('span',{style:{color:'#8b8fa3',fontSize:'10px'}},S.rnd+'/'+S.maxR),
+      ):null,
+    ),
+  ));
+
+  // Docs bar
+  if(S.docs.length){
+    const db=el('div',{class:'docs-bar'});
+    db.append(el('span',{style:{color:'#555',fontSize:'10px'}},'📎'));
+    S.docs.forEach(d=>db.append(el('span',{class:'doc-chip'},d.name)));
+    c.append(db);
+  }
+
+  // Messages
+  const ma=el('div',{class:'msgs'}),mi=el('div',{class:'msgs-in'});
+  S.msgs.forEach(msg=>{
+    const u=msg.role==='user',sys=msg.role==='summary';
+    const cls=u?'msg msg-u':sys?'msg msg-sys':msg.role==='A'?'msg msg-a':'msg msg-b';
+    mi.append(el('div',{class:cls},
+      el('div',{class:'msg-l',style:{color:u?'#fbbf24':sys?'#a78bfa':msg.tC||'#aaa'}},msg.e+' '+msg.n),
+      el('div',{class:'msg-bub',style:u||sys?{}:{background:msg.bg,border:'1px solid '+msg.bc,color:'#e2e4ed'}},msg.text),
+    ));
+  });
+  if(S.run&&!S.pause&&S.think)mi.append(el('div',{style:{textAlign:'center',padding:'8px'}},el('span',{style:{color:'#8b8fa3',fontSize:'12px'}},el('span',{class:'spin',style:{marginRight:'4px'}},'⚡'),S.think+' denkt na...')));
+  const end=el('div');mi.append(end);ma.append(mi);c.append(ma);
+
+  // Summary panel
+  if(S.summary){
+    c.append(el('div',{class:'sum-p'},
+      el('div',{style:{maxWidth:'660px',margin:'0 auto'}},
+        el('div',{style:{color:'#a78bfa',fontWeight:'600',fontSize:'12px',marginBottom:'6px'}},'📋 Samenvatting'),
+        el('div',{style:{color:'#c4b5fd',fontSize:'12px',lineHeight:'1.6',whiteSpace:'pre-wrap'}},S.summary),
+      ),
+    ));
+  }
+
+  // Cost pause
+  if(S.costPause){
+    const pp=el('div',{class:'pause-p'}),pi=el('div',{style:{maxWidth:'660px',margin:'0 auto'}});
+    pi.append(el('div',{style:{color:'#fbbf24',fontWeight:'600',fontSize:'12px',marginBottom:'6px'}},'⏸️ Kostenpauze — €'+S.cost.toFixed(3)));
+    const ui=el('input',{class:'inp inp-s',placeholder:'Vraag of sturing...',style:{marginBottom:'8px'},onInput:e=>{S.uInput=e.target.value},onKeydown:e=>{if(e.key==='Enter'&&S.uInput.trim())doUA(S.uInput.trim())}});
+    pi.append(ui);
+    pi.append(el('div',{style:{display:'flex',gap:'6px',flexWrap:'wrap'}},
+      el('button',{class:'btn btn-g',onClick:()=>doUA('__GO__')},'▶ Doorgaan'),
+      el('button',{class:'btn btn-r',onClick:doStop},'⏹ Stop'),
+    ));
+    pp.append(pi);c.append(pp);
+  }
+
+  // Footer controls
+  if(!S.costPause){
+    // Always-visible input when running or paused
+    if(S.run||S.pause){
+      const inputBar=el('div',{style:{padding:'8px 14px',borderTop:'1px solid rgba(255,255,255,.08)',flexShrink:'0',paddingBottom:'max(8px,env(safe-area-inset-bottom))'}});
+      const inputRow=el('div',{style:{display:'flex',gap:'6px',maxWidth:'660px',margin:'0 auto',alignItems:'center'}});
+      const chatInp=el('input',{class:'inp inp-s',id:'live-input',placeholder:'💬 Typ hier om mee te praten...',style:{flex:'1'},
+        onKeydown:e=>{if(e.key==='Enter'&&e.target.value.trim()){doInject(e.target.value.trim());e.target.value=''}},
+      });
+      const sendBtn=el('button',{class:'btn btn-o',style:{padding:'7px 12px',fontSize:'13px'},onClick:()=>{const v=$('#live-input');if(v&&v.value.trim()){doInject(v.value.trim());v.value=''}}},'➤');
+      inputRow.append(chatInp,sendBtn);
+      inputBar.append(inputRow);
+      const btnRow=el('div',{style:{display:'flex',gap:'6px',justifyContent:'center',marginTop:'6px',maxWidth:'660px',margin:'6px auto 0'}});
+      btnRow.append(el('button',{class:'btn btn-y',style:{fontSize:'11px',padding:'5px 12px'},onClick:doPause},S.pause?'▶ Hervat':'⏸ Pauze'));
+      btnRow.append(el('button',{class:'btn btn-r',style:{fontSize:'11px',padding:'5px 12px'},onClick:doStop},'⏹ Stop'));
+      if(S.msgs.length)btnRow.append(el('span',{style:{color:'#444',fontSize:'9px',lineHeight:'26px'}},'~'+Math.round(S.tok/1000)+'K • '+S.msgs.filter(m=>m.role!=='user'&&m.role!=='summary').length+' msgs'));
+      inputBar.append(btnRow);
+      c.append(inputBar);
+    }else if(S.stopped&&S.msgs.length){
+      const ft=el('div',{class:'ftr'});
+      ft.append(el('button',{class:'btn btn-g',onClick:doResume},'▶ Hervat gesprek'));
+      ft.append(el('button',{class:'btn btn-p',onClick:()=>doSummary(false)},'📋 Kort'));
+      ft.append(el('button',{class:'btn btn-p',onClick:()=>doSummary(true)},'📊 Uitgebreid'));
+      ft.append(el('button',{class:'btn btn-m',onClick:()=>exportTranscript('html')},'📄 PDF'));
+      ft.append(el('button',{class:'btn btn-m',onClick:()=>exportTranscript('share')},'📤 Deel'));
+      ft.append(el('button',{class:'btn btn-m',onClick:()=>exportTranscript('md')},'📥 MD'));
+      ft.append(el('button',{class:'btn btn-m',onClick:resetAll},'🔄 Nieuw'));
+      ft.append(el('button',{class:'btn btn-m',onClick:resetAll},'🔄 Nieuw'));
+      if(S.msgs.length)ft.append(el('span',{style:{color:'#444',fontSize:'10px',lineHeight:'30px'}},'~'+Math.round(S.tok/1000)+'K • '+S.msgs.filter(m=>m.role!=='user'&&m.role!=='summary').length+' msgs'));
+      c.append(ft);
+    }else if(S.msgs.length){
+      const ft=el('div',{class:'ftr'});
+      ft.append(el('button',{class:'btn btn-m',onClick:resetAll},'🔄 Nieuw'));
+      c.append(ft);
+    }
+  }
+
+  if(S.err)c.append(el('div',{style:{padding:'6px 14px',textAlign:'center'}},el('span',{style:{background:'rgba(239,68,68,.15)',border:'1px solid rgba(239,68,68,.3)',borderRadius:'7px',padding:'4px 10px',color:'#fca5a5',fontSize:'11px'}},'⚠️ '+S.err)));
+  a.append(c);
+  setTimeout(()=>end.scrollIntoView({behavior:'smooth'}),50);
+}
+
+// ==================== PROFILE SCREEN ====================
+function rProfile(a){
+  const w=el('div',{class:'screen'}),inner=el('div',{class:'center'});
+  inner.append(el('button',{class:'btn btn-m',style:{marginBottom:'14px',fontSize:'11px'},onClick:()=>{S.scr='mode';render()}},'← Terug'));
+  inner.append(el('h2',{style:{color:'#fff',fontSize:'18px',fontWeight:'600',marginBottom:'4px'}},'👤 Mijn Profiel'));
+  inner.append(el('p',{style:{color:'#8b8fa3',fontSize:'12px',marginBottom:'16px'}},'Wordt meegestuurd naar beide AI\'s'));
+  // Toggle
+  const cb=el('input',{type:'checkbox',style:{accentColor:'#a78bfa'}});cb.checked=profile.active;
+  cb.addEventListener('change',()=>{profile.active=cb.checked;store.set('profile',profile)});
+  inner.append(el('div',{style:{display:'flex',alignItems:'center',gap:'8px',marginBottom:'14px'}},cb,el('span',{style:{color:'#c4c7d4',fontSize:'13px'}},'Profiel actief')));
+  // Name
+  inner.append(el('div',{style:{background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.08)',borderRadius:'12px',padding:'14px',marginBottom:'12px'}},
+    el('div',{style:{color:'#fff',fontSize:'13px',fontWeight:'600',marginBottom:'8px'}},'Naam'),
+    el('input',{class:'inp inp-s',value:profile.name||'',placeholder:'bijv. Ferri',onInput:e=>{profile.name=e.target.value;store.set('profile',profile)}})));
+  // Context
+  const ctxTA=el('textarea',{class:'inp inp-s',rows:'3',placeholder:'bijv. Acteur, ondernemer. Werkt aan Snypher 2.0...',onInput:e=>{profile.context=e.target.value;store.set('profile',profile)}});ctxTA.value=profile.context||'';
+  inner.append(el('div',{style:{background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.08)',borderRadius:'12px',padding:'14px',marginBottom:'12px'}},
+    el('div',{style:{color:'#fff',fontSize:'13px',fontWeight:'600',marginBottom:'8px'}},'Achtergrond'),ctxTA));
+  // Instructions
+  const insTA=el('textarea',{class:'inp inp-s',rows:'4',placeholder:'bijv. Altijd Nederlands. Denk mee vanuit ondernemerschap.',onInput:e=>{profile.instructions=e.target.value;store.set('profile',profile)}});insTA.value=profile.instructions||'';
+  inner.append(el('div',{style:{background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.08)',borderRadius:'12px',padding:'14px',marginBottom:'12px'}},
+    el('div',{style:{color:'#fff',fontSize:'13px',fontWeight:'600',marginBottom:'8px'}},'Vaste Instructies'),
+    el('p',{style:{color:'#8b8fa3',fontSize:'11px',marginBottom:'6px'}},'Regels die altijd meegaan'),insTA));
+  inner.append(el('button',{class:'btn btn-r',style:{fontSize:'11px',marginTop:'4px'},onClick:()=>{Object.assign(profile,{name:'',context:'',instructions:'',active:true});store.set('profile',profile);render()}},'🗑️ Reset'));
+  w.append(inner);a.append(w);
+}
+
+// ==================== HISTORY SCREEN ====================
+function rHistory(a){
+  const w=el('div',{class:'screen'}),inner=el('div',{class:'center'});
+  inner.append(el('button',{class:'btn btn-m',style:{marginBottom:'14px',fontSize:'11px'},onClick:()=>{S.scr='mode';render()}},'← Terug'));
+  inner.append(el('h2',{style:{color:'#fff',fontSize:'18px',fontWeight:'600',marginBottom:'4px'}},'📜 Sessie Geschiedenis'));
+  inner.append(el('p',{style:{color:'#8b8fa3',fontSize:'12px',marginBottom:'16px'}},'Laatste 3 sessies worden als geheugen meegestuurd'));
+  if(!sessions.length){inner.append(el('div',{style:{textAlign:'center',padding:'30px',color:'#555'}},'Nog geen sessies. Start een gesprek!'));w.append(inner);a.append(w);return}
+  inner.append(el('div',{style:{display:'flex',justifyContent:'flex-end',marginBottom:'10px'}},el('button',{class:'btn btn-r',style:{fontSize:'10px'},onClick:()=>{if(confirm('Alle sessies wissen?')){sessions.length=0;store.set('sessions',sessions);render()}}},'🗑️ Alles wissen')));
+  sessions.forEach((s,i)=>{
+    const d=new Date(s.date),ds=d.toLocaleDateString('nl-NL',{day:'numeric',month:'short'}),ts=d.toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'});
+    const mode=MODES[s.mode];
+    const item=el('div',{style:{background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.08)',borderRadius:'10px',padding:'10px',marginBottom:'8px'}});
+    item.append(el('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'4px'}},
+      el('div',{},el('span',{style:{color:'#fff',fontWeight:'600',fontSize:'13px'}},mode?.l||s.mode),el('span',{style:{color:'#555',fontSize:'10px',marginLeft:'6px'}},ds+' '+ts)),
+      el('div',{style:{display:'flex',gap:'4px'}},
+        el('span',{style:{background:'rgba(34,197,94,.12)',color:'#86efac',padding:'2px 7px',borderRadius:'5px',fontSize:'10px'}},'€'+s.cost.toFixed(3)),
+        el('span',{style:{background:'rgba(99,102,241,.12)',color:'#a5b4fc',padding:'2px 7px',borderRadius:'5px',fontSize:'10px'}},s.rounds+'r'))));
+    item.append(el('div',{style:{color:'#c4c7d4',fontSize:'12px'}},'"'+s.topic+'"'));
+    if(s.summary)item.append(el('div',{style:{color:'#8b8fa3',fontSize:'11px',lineHeight:'1.4',marginTop:'4px',borderLeft:'2px solid rgba(139,92,246,.3)',paddingLeft:'8px'}},s.summary.slice(0,150)+(s.summary.length>150?'...':'')));
+    item.append(el('div',{style:{marginTop:'6px'}},el('button',{class:'btn btn-m',style:{fontSize:'10px',padding:'3px 8px'},onClick:()=>{sessions.splice(i,1);store.set('sessions',sessions);render()}},'✕ Verwijder')));
+    inner.append(item);
+  });
+  w.append(inner);a.append(w);
+}
+
+// ==================== ACTIONS ====================
+function doStop(){
+  stopF=true;pauseF=false;S.run=false;S.pause=false;S.costPause=false;S.think='';S.stopped=true;
+  if(resW){resW('__STOP__');resW=null}
+  if(S.msgs.length>=2)saveSession();
+  render();
+}
+function doPause(){if(S.costPause)return;pauseF=!pauseF;S.pause=pauseF;render()}
+function doUA(t){if(resW){resW(t);resW=null}S.costPause=false;S.uInput='';pauseF=false;S.pause=false;costTh+=1.0;render()}
+
+function doInject(text){
+  // Add user message visually
+  S.msgs.push({role:'user',e:'👤',n:'Jij',text:text});
+  // Inject into both conversation histories so both Claude's see it
+  const injection=`[TUSSENKOMST VAN DE OPDRACHTGEVER]: ${text}\n\nReageer hierop en neem dit mee in jullie verdere discussie.`;
+  S.histA.push({role:'user',content:injection});
+  S.histA.push({role:'assistant',content:'Begrepen, ik neem dit mee.'});
+  S.histB.push({role:'user',content:injection});
+  S.histB.push({role:'assistant',content:'Begrepen, ik neem dit mee.'});
+  // Update lastResp so next turn picks it up
+  S.lastResp=injection;
+  render();
+}
+
+function resetAll(){
+  doStop();S.msgs=[];S.rnd=0;S.err=null;S.topic='';S.mode=null;S.cost=0;S.tok=0;
+  S.docs=[];S.summary=null;S.stopped=false;S.histA=[];S.histB=[];S.lastResp='';
+  costT=0;costTh=1.0;S.scr='mode';render();
+}
+
+async function doSummary(extended){
+  S.think=extended?'Uitgebreid rapport...':'Samenvatting';S.run=true;render();
+  try{
+    const sum=await generateSummary(extended);
+    S.summary=sum;
+    S.msgs.push({role:'summary',e:extended?'📊':'📋',n:extended?'Uitgebreid Rapport':'Samenvatting',text:sum});
+    if(sessions.length&&sessions[0].topic===S.topic){sessions[0].summary=sum;store.set('sessions',sessions)}
+  }catch(e){S.err=e.message}
+  S.run=false;S.think='';render();
+}
+
+function doResume(){
+  S.stopped=false;S.summary=null;
+  runLoop(true);
+}
+
+async function startRun(){
+  if(!S.mode||!S.topic.trim())return;
+  S.scr='running';S.run=true;S.err=null;S.msgs=[];S.rnd=0;S.cost=0;S.tok=0;S.summary=null;S.stopped=false;
+  stopF=false;pauseF=false;costT=0;costTh=1.0;
+  S.histA=[];S.histB=[];
+  S.lastResp=S.mode==='mystery'?`Het onderwerp is: "${S.topic}". Begin met je eerste analyse.`:`We bouwen: "${S.topic}". Begin met architectuur of eerste component.`;
+  render();
+  runLoop(false);
+}
+
+async function runLoop(resume){
+  const cfg=MODES[S.mode];
+  S.run=true;S.stopped=false;stopF=false;pauseF=false;
+  if(!resume){S.err=null}
+  render();
+
+  try{
+    for(let i=S.rnd;i<S.maxR;i++){
+      if(stopF)break;
+
+      while(pauseF&&!S.costPause){await new Promise(r=>setTimeout(r,300));if(stopF)break}
+      if(stopF)break;
+
+      // Cost check
+      if(costT>=costTh){
+        S.costPause=true;S.pause=true;pauseF=true;render();
+        const ui=await new Promise(r=>{resW=r});
+        if(ui==='__STOP__')break;
+        if(ui&&ui!=='__GO__'){S.msgs.push({role:'user',e:'👤',n:'Jij',text:ui});S.lastResp=`[TUSSENKOMST]: ${ui}\n\nVerwerk dit.`}
+      }
+      if(stopF)break;
+
+      // A
+      S.think=cfg.rA.n;render();
+      S.histA.push({role:'user',content:S.lastResp});
+      S.histA=trim(S.histA);
+      const provA=cfg.rA.provider||'anthropic';
+      const modA=provA==='xai'?S.modelB:S.model;
+      const rA=await callAPI(cfg.rA.s,S.histA,provA,modA);
+      S.histA.push({role:'assistant',content:rA});
+      S.think='';
+      S.msgs.push({role:'A',...cfg.rA,n:cfg.rA.n,e:cfg.rA.e,text:rA});
+      S.rnd=i+1;render();
+      if(stopF)break;
+      await new Promise(r=>setTimeout(r,1500));
+
+      // Cost check B
+      if(costT>=costTh){
+        S.costPause=true;S.pause=true;pauseF=true;render();
+        const ui=await new Promise(r=>{resW=r});
+        if(ui==='__STOP__')break;
+        if(ui&&ui!=='__GO__'){S.msgs.push({role:'user',e:'👤',n:'Jij',text:ui});S.histB.push({role:'user',content:`[TUSSENKOMST]: ${ui}`})}
+      }
+
+      while(pauseF&&!S.costPause){await new Promise(r=>setTimeout(r,300));if(stopF)break}
+      if(stopF)break;
+
+      // B
+      S.think=cfg.rB.n;render();
+      S.histB.push({role:'user',content:rA});
+      S.histB=trim(S.histB);
+      const provB=cfg.rB.provider||'anthropic';
+      const modB=provB==='xai'?S.modelB:S.model;
+      const rB=await callAPI(cfg.rB.s,S.histB,provB,modB);
+      S.histB.push({role:'assistant',content:rB});
+      S.think='';
+      S.msgs.push({role:'B',...cfg.rB,n:cfg.rB.n,e:cfg.rB.e,text:rB});
+      S.lastResp=rB;render();
+      await new Promise(r=>setTimeout(r,1500));
+    }
+  }catch(e){S.err=e.message}
+  S.think='';S.run=false;S.stopped=true;
+  if(S.msgs.length>=2)saveSession();
+  render();
+}
+
+// ==================== INIT ====================
+if(S.apiKey)S.scr='mode';
+render();
+if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
+</script>
+</body>
+</html>
